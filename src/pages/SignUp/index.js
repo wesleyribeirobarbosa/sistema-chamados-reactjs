@@ -8,7 +8,7 @@ function SignUp() {
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
 
-  const { signUp } = useContext(AuthContext);
+  const { signUp, loadingAuth } = useContext(AuthContext);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -41,7 +41,7 @@ function SignUp() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           ></input>
-          <button type="submit">Salvar</button>
+          <button type="submit">{loadingAuth ? "Carregando ..." : "Salvar"}</button>
         </form>
         <Link to="/">Já tem uma conta? Entre.</Link>
       </div>
