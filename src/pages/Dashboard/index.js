@@ -34,9 +34,8 @@ export default function Dashboard() {
       .then((snapshot) => {
         updateState(snapshot);
       })
-      .catch((error) => {
-        toast.error("Erro ao carregar dashboard");
-        console.log(error);
+      .catch((err) => {
+        console.log("Deu algum erro: ", err);
         setLoadingMore(false);
       });
 
@@ -44,9 +43,11 @@ export default function Dashboard() {
   }
 
   async function updateState(snapshot) {
-    const isCollectionEmpty = snapshot.size;
+    const isCollectionEmpty = snapshot.size === 0;
+
     if (!isCollectionEmpty) {
       let lista = [];
+
       snapshot.forEach((doc) => {
         lista.push({
           id: doc.id,
@@ -54,32 +55,65 @@ export default function Dashboard() {
           cliente: doc.data().cliente,
           clienteId: doc.data().clienteId,
           created: doc.data().created,
-          createdFormated: format(doc.data().created.toDate(), "dd/mm/yyyy"),
+          createdFormated: format(doc.data().created.toDate(), "dd/MM/yyyy"),
           status: doc.data().status,
           complemento: doc.data().complemento,
         });
       });
 
-      const lastDoc = snapshot.docs[snapshot.docs.length -1];
-      setChamados(chamados => [...chamados, ...lista]);
+      const lastDoc = snapshot.docs[snapshot.docs.length - 1]; //Pegando o ultimo documento buscado
+
+      setChamados((chamados) => [...chamados, ...lista]);
       setLastDocs(lastDoc);
     } else {
-     setIsEmpty(true);
+      setIsEmpty(true);
     }
 
     setLoadingMore(false);
   }
 
+  async function handleMore() {
+    setLoadingMore(true);
+    await listRef
+      .startAfter(lastDocs)
+      .limit(5)
+      .get()
+      .then((snapshot) => {
+        updateState(snapshot);
+      });
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <Header />
+
+        <div className="content">
+          <Title name="Atendimentos">
+            <FiMessageSquare size={25} />
+          </Title>
+
+          <div className="container dashboard">
+            <span>Buscando chamados...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <Header></Header>
+      <Header />
+
       <div className="content">
         <Title name="Atendimentos">
-          <FiMessageSquare size={25}></FiMessageSquare>
+          <FiMessageSquare size={25} />
         </Title>
+
         {chamados.length === 0 ? (
           <div className="container dashboard">
-            <span>Nenhum chamado registrado</span>
+            <span>Nenhum chamado registrado...</span>
+
             <Link to="/new" className="new">
               <FiPlus size={25} color="#FFF" />
               Novo chamado
@@ -91,46 +125,65 @@ export default function Dashboard() {
               <FiPlus size={25} color="#FFF" />
               Novo chamado
             </Link>
+
             <table>
               <thead>
                 <tr>
                   <th scope="col">Cliente</th>
                   <th scope="col">Assunto</th>
                   <th scope="col">Status</th>
-                  <th scope="col">Cadastrado</th>
+                  <th scope="col">Cadastrado em</th>
                   <th scope="col">#</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td data-label="Cliente">Wesley Barbosa</td>
-                  <td data-label="Assunto">Suporte</td>
-                  <td data-label="Status">
-                    <span
-                      className="badge"
-                      style={{ backgroundColor: "#5cb85c" }}
-                    >
-                      Em aberto
-                    </span>
-                  </td>
-                  <td data-label="Cadastrado">20/06/2021</td>
-                  <td data-label="#">
-                    <button
-                      className="action"
-                      style={{ backgroundColor: "#3583f6" }}
-                    >
-                      <FiSearch color="#FFF" size={17}></FiSearch>
-                    </button>
-                    <button
-                      className="action"
-                      style={{ backgroundColor: "#f6a935" }}
-                    >
-                      <FiEdit2 color="#FFF" size={17}></FiEdit2>
-                    </button>
-                  </td>
-                </tr>
+                {chamados.map((item, index) => {
+                  return (
+                    <tr key={index}>
+                      <td data-label="Cliente">{item.cliente}</td>
+                      <td data-label="Assunto">{item.assunto}</td>
+                      <td data-label="Status">
+                        <span
+                          className="badge"
+                          style={{
+                            backgroundColor:
+                              item.status === "Aberto" ? "#5cb85c" : "#999",
+                          }}
+                        >
+                          {item.status}
+                        </span>
+                      </td>
+                      <td data-label="Cadastrado">{item.createdFormated}</td>
+                      <td data-label="#">
+                        <button
+                          className="action"
+                          style={{ backgroundColor: "#3583f6" }}
+                        >
+                          <FiSearch color="#FFF" size={17} />
+                        </button>
+                        <button
+                          className="action"
+                          style={{ backgroundColor: "#F6a935" }}
+                        >
+                          <FiEdit2 color="#FFF" size={17} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
+
+            {loadingMore && (
+              <h3 style={{ textAlign: "center", marginTop: 15 }}>
+                Buscando dados...
+              </h3>
+            )}
+            {!loadingMore && !isEmpty && (
+              <button className="btn-more" onClick={handleMore}>
+                Buscar mais
+              </button>
+            )}
           </>
         )}
       </div>
